@@ -20,6 +20,7 @@
     "build": "tsup",
     "lint:ci": "biome ci --reporter=github .",
     "lint": "tsc --noEmit",
+    "release": "semantic-release",
     "test": "vitest --coverage"
   },
   "repository": {

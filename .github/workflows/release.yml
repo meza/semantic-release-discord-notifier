@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: 🧪 Verify PR
+    name: 🧪 Verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,21 +31,13 @@ jobs:
         run: pnpm test
 
       - name: Collect Test Reports
-        uses: meza/action-collect-test-reports@v1
+        uses: meza/action-collect-test-reports@main
 
       - name: 📦 Build
         run: pnpm build
 
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          extra_plugins: |
-            conventional-changelog-conventionalcommits
-            @semantic-release/commit-analyzer
-            @semantic-release/release-notes-generator
-            @semantic-release/changelog
-            @semantic-release/github
-            @semantic-release/npm
+        run: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
