@@ -1,0 +1,16 @@
+{
+  "extends": ["@meza/biome"],
+  "files": {
+    "ignore": ["reports", ".cache"]
+  },
+  "overrides": [
+    {
+      "include": ["**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "nursery": { "noTemplateCurlyInString": "off" }
+        }
+      }
+    }
+  ]
+}

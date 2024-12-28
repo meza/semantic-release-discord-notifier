@@ -1,0 +1,50 @@
+name: Verify PR
+
+permissions:
+  issues: write
+  checks: write
+  contents: write
+  pull-requests: write
+
+
+on:
+  pull_request:
+  merge_group:
+
+jobs:
+  build:
+    name: 🧪 Verify PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 📝 Set up node
+        uses: meza/action-setup-node-pnpm@main
+        with:
+          install: true
+
+      - name: 🔬 Lint
+        run: pnpm lint:ci
+
+      - name: 🧪 Test
+        run: pnpm test
+
+      - name: Collect Test Reports
+        uses: meza/collect-test-reports@v1
+
+      - name: 📦 Build
+        run: pnpm build
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            conventional-changelog-conventionalcommits
+            @semantic-release/commit-analyzer
+            @semantic-release/release-notes-generator
+            @semantic-release/changelog
+            @semantic-release/github
+            @semantic-release/npm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
