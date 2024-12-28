@@ -35,7 +35,7 @@ The plugin can be configured in the [**semantic-release** configuration file](ht
 
 | Variable             | Description                               |
 |----------------------|-------------------------------------------|
-| `DISCORD_WEBHOOK_URL`| The Discord webhook URL (if not in config)|
+| `DISCORD_WEBHOOK`| The Discord webhook URL (if not in config)|
 
 ### Options
 

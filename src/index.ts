@@ -6,7 +6,7 @@ interface PluginConfig {
 }
 
 interface EnvVariables {
-  DISCORD_WEBHOOK_URL?: string;
+  DISCORD_WEBHOOK?: string;
   // Add other environment variables here
 }
 
@@ -21,9 +21,9 @@ declare global {
 export async function verifyConditions(pluginConfig: PluginConfig): Promise<void> {
   const { webhookUrl } = pluginConfig;
 
-  if (!webhookUrl && !process.env.DISCORD_WEBHOOK_URL) {
+  if (!webhookUrl && !process.env.DISCORD_WEBHOOK) {
     throw new Error(
-      'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK_URL environment variable.'
+      'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
     );
   }
 }
@@ -33,7 +33,7 @@ export async function success(pluginConfig: PluginConfig, context: semantic.Succ
   const { webhookUrl, embedJson } = pluginConfig;
   const { nextRelease } = context;
 
-  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK_URL;
+  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
 
   if (!discordWebhookUrl) {
     throw new Error('Discord webhook URL is not set.');
@@ -53,7 +53,7 @@ export async function fail(pluginConfig: PluginConfig, context: semantic.FailCon
   const { webhookUrl, embedJson } = pluginConfig;
   const { errors } = context;
 
-  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK_URL;
+  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
 
   if (!discordWebhookUrl) {
     throw new Error('Discord webhook URL is not set.');

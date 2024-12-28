@@ -6,13 +6,13 @@ describe('Semantic Release Discord Notifier', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.unstubAllEnvs();
-    vi.stubEnv('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/test');
+    vi.stubEnv('DISCORD_WEBHOOK', 'https://discord.com/api/webhooks/test');
   });
   describe('verifyConditions', () => {
     it('should throw an error if no webhook URL is provided', async () => {
       vi.unstubAllEnvs();
       await expect(verifyConditions({})).rejects.toThrow(
-        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK_URL environment variable.'
+        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
       );
     });
 
