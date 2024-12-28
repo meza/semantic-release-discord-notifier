@@ -16,6 +16,7 @@
       }
     }
   },
+  "files": ["dist", "package.json", "README.md", "CHANGELOG.md", "LICENSE"],
   "scripts": {
     "build": "tsup",
     "lint:ci": "biome ci --reporter=github .",
@@ -25,9 +26,7 @@
     "release": "semantic-release",
     "test": "vitest --coverage"
   },
-  "repository": {
-    "url": "git+https://github.com/meza/semantic-release-discord-notifier"
-  },
+  "repository": "git+https://github.com/meza/semantic-release-discord-notifier.git",
   "keywords": ["semantic-release", "discord"],
   "author": "Meza",
   "license": "GPL-3.0",
@@ -61,8 +60,7 @@
     "vitest": "2.1.8"
   },
   "publishConfig": {
-    "access": "public",
-    "ignore": ["!dist/", "!package.json", "!README.md", "!CHANGELOG.md", "!LICENSE", "*"]
+    "access": "public"
   },
   "commitlint": {
     "extends": ["@commitlint/config-conventional"],
