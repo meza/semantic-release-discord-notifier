@@ -16,13 +16,13 @@ importers:
         specifier: ^1.9.4
         version: 1.9.4
       '@commitlint/cli':
-        specifier: ^19.6.1
+        specifier: 19.6.1
         version: 19.6.1(@types/node@22.10.2)(typescript@5.7.2)
       '@commitlint/config-conventional':
-        specifier: ^19.6.0
+        specifier: 19.6.0
         version: 19.6.0
       '@commitlint/prompt-cli':
-        specifier: ^19.6.1
+        specifier: 19.6.1
         version: 19.6.1(@types/node@22.10.2)(typescript@5.7.2)
       '@meza/biome':
         specifier: ^1.1.0
@@ -64,7 +64,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       lefthook:
-        specifier: ^1.10.1
+        specifier: 1.10.1
         version: 1.10.1
       pnpm:
         specifier: '*'
@@ -79,7 +79,7 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@microsoft/api-extractor@7.48.1(@types/node@22.10.2))(jiti@2.4.2)(postcss@8.4.49)(tsx@4.19.2)(typescript@5.7.2)
       tsx:
-        specifier: ^4.19.2
+        specifier: 4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.7.2
