@@ -44,13 +44,13 @@ export async function success(pluginConfig: PluginConfig, context: semantic.Succ
   }
 
   const embed = embedJson ? replaceVariables(embedJson, context) : defaultEmbedJson(nextRelease);
-
+  context.logger.log(`Sending Discord notification with json: "${embed}"`);
   await sendDiscordWebhook(discordWebhookUrl, embed);
 }
 
 // Send a failure notification
 export async function fail(pluginConfig: PluginConfig, context: semantic.FailContext): Promise<void> {
-  const { webhookUrl, embedJson } = pluginConfig;
+  const { webhookUrl } = pluginConfig;
   const { errors } = context;
 
   const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
@@ -59,20 +59,20 @@ export async function fail(pluginConfig: PluginConfig, context: semantic.FailCon
     throw new Error('Discord webhook URL is not set.');
   }
 
-  const embed = embedJson || failureEmbedJson(errors.errors);
+  const embed = failureEmbedJson(errors.errors);
 
   await sendDiscordWebhook(discordWebhookUrl, embed);
 }
 
 // Function to send Discord webhook
-async function sendDiscordWebhook(webhookUrl: string, embedJson: object): Promise<void> {
+async function sendDiscordWebhook(webhookUrl: string, message: string): Promise<void> {
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ embeds: [embedJson] })
+      body: message
     });
 
     if (!response.ok) {
@@ -87,25 +87,39 @@ async function sendDiscordWebhook(webhookUrl: string, embedJson: object): Promis
 }
 
 // Default embed JSON function for success
-function defaultEmbedJson(release: semantic.NextRelease): object {
-  return {
-    title: `New Release: ${release.version}`,
-    description: release.notes,
-    color: 5814783 // Green color
-  };
+function defaultEmbedJson(nextRelease: semantic.NextRelease): string {
+  return JSON.stringify({
+    content: `New Release: ${nextRelease.version}`,
+    embeds: [
+      {
+        title: 'What changed?',
+        description: `${nextRelease.notes}`,
+        color: 7377919
+      }
+    ]
+  });
 }
 
 // Default embed JSON function for failure
-function failureEmbedJson(errors: Error[]): object {
-  return {
-    title: 'Release Failed',
-    description: errors.map((error) => error.message).join('\n'),
-    color: 15158332 // Red color
+function failureEmbedJson(errors: Error[]): string {
+  const message: { content: string; embeds: { title: string; description: string; color: number }[] } = {
+    content: 'Release Failed',
+    embeds: []
   };
+
+  errors.forEach((error) => {
+    message.embeds.push({
+      title: 'Error',
+      description: error.message,
+      color: 15158332 // Red color
+    });
+  });
+
+  return JSON.stringify(message);
 }
 
 // Function to replace variables in the embed JSON
-function replaceVariables(embed: object, context: semantic.SuccessContext): object {
+function replaceVariables(embed: object, context: semantic.SuccessContext): string {
   const stringified = JSON.stringify(embed);
   const replaced = stringified.replace(/\${(.*?)}/g, (match, p1) => {
     const value = p1.split('.').reduce((obj: unknown, key: string) => {
@@ -114,7 +128,7 @@ function replaceVariables(embed: object, context: semantic.SuccessContext): obje
       }
       return undefined;
     }, context);
-    return value !== undefined ? String(value) : match;
+    return value !== undefined ? JSON.stringify(value).slice(1, -1) : match;
   });
-  return JSON.parse(replaced);
+  return replaced;
 }
