@@ -59,7 +59,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "ignore": ["!dist/", "tsconfig*"]
+    "ignore": ["!dist/", "!package.json", "!README.md", "!CHANGELOG.md", "!LICENSE", "*"]
   },
   "commitlint": {
     "extends": ["@commitlint/config-conventional"],
