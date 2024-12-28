@@ -19,7 +19,9 @@
   "scripts": {
     "build": "tsup",
     "lint:ci": "biome ci --reporter=github .",
-    "lint": "tsc --noEmit",
+    "lint:types": "tsc --noEmit",
+    "lint:package": "publint",
+    "lint": "run-s lint:ci lint:types lint:package",
     "release": "semantic-release",
     "test": "vitest --coverage"
   },
@@ -49,6 +51,7 @@
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "is-ci": "^4.1.0",
     "lefthook": "1.10.1",
+    "npm-run-all2": "^7.0.2",
     "pnpm": "*",
     "publint": "^0.2.12",
     "semantic-release-export-data": "^1.1.0",
