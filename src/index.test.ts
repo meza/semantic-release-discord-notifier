@@ -202,6 +202,40 @@ describe('Semantic Release Discord Notifier', () => {
           })
         );
       });
+
+      it('should handle new lines in variables', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = fetchMock;
+
+        const contextWithLines: semantic.SuccessContext = {
+          logger: console,
+          nextRelease: {
+            version: '1.0.0',
+            notes: `Release notes
+
+with new lines
+and
+more new lines`
+          }
+        } as semantic.SuccessContext;
+
+        const pluginConfig = {
+          embedJson: {
+            content: '${nextRelease.notes}'
+          }
+        };
+
+        await success(pluginConfig, contextWithLines);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://discord.com/api/webhooks/test',
+          expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{"content":"Release notes\\n\\nwith new lines\\nand\\nmore new lines"}'
+          })
+        );
+      });
     });
   });
 

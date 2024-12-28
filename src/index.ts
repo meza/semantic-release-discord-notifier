@@ -128,7 +128,7 @@ function replaceVariables(embed: object, context: semantic.SuccessContext): stri
       }
       return undefined;
     }, context);
-    return value !== undefined ? String(value) : match;
+    return value !== undefined ? JSON.stringify(value).slice(1, -1) : match;
   });
   return replaced;
 }
