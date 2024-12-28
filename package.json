@@ -69,6 +69,7 @@
     }
   },
   "dependencies": {
+    "discord.js": "^14.16.3",
     "semantic-release": "^24.2.0"
   },
   "tsup": {

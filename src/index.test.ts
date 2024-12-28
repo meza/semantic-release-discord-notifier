@@ -50,11 +50,12 @@ describe('Semantic Release Discord Notifier', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            content: 'New Release: 1.0.0',
             embeds: [
               {
-                title: 'New Release: 1.0.0',
+                title: 'What changed?',
                 description: 'Release notes',
-                color: 5814783
+                color: 7377919
               }
             ]
           })
@@ -112,13 +113,9 @@ describe('Semantic Release Discord Notifier', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              embeds: [
-                {
-                  title: 'New Release: 1.0.0',
-                  description: 'Release notes',
-                  color: 5814783
-                }
-              ]
+              title: 'New Release: 1.0.0',
+              description: 'Release notes',
+              color: 5814783
             })
           })
         );
@@ -144,13 +141,9 @@ describe('Semantic Release Discord Notifier', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              embeds: [
-                {
-                  title: 'New Release: ${nextRelease.nonExistent}',
-                  description: 'Release notes',
-                  color: 5814783
-                }
-              ]
+              title: 'New Release: ${nextRelease.nonExistent}',
+              description: 'Release notes',
+              color: 5814783
             })
           })
         );
@@ -178,15 +171,11 @@ describe('Semantic Release Discord Notifier', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              embeds: [
-                {
-                  title: 'New Release: 1.0.0',
-                  details: {
-                    notes: 'Release notes'
-                  },
-                  color: 5814783
-                }
-              ]
+              title: 'New Release: 1.0.0',
+              details: {
+                notes: 'Release notes'
+              },
+              color: 5814783
             })
           })
         );
@@ -207,9 +196,7 @@ describe('Semantic Release Discord Notifier', () => {
           expect.objectContaining({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              embeds: [{}]
-            })
+            body: JSON.stringify({})
           })
         );
       });
@@ -241,9 +228,10 @@ describe('Semantic Release Discord Notifier', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            content: 'Release Failed',
             embeds: [
               {
-                title: 'Release Failed',
+                title: 'Error',
                 description: 'whoops',
                 color: 15158332
               }
