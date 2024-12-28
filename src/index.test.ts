@@ -27,6 +27,7 @@ describe('Semantic Release Discord Notifier', () => {
 
   describe('success', () => {
     const context: semantic.SuccessContext = {
+      logger: console,
       nextRelease: {
         version: '1.0.0',
         notes: 'Release notes'
@@ -87,6 +88,7 @@ describe('Semantic Release Discord Notifier', () => {
 
     describe('variable replacement', () => {
       const context: semantic.SuccessContext = {
+        logger: console,
         nextRelease: {
           version: '1.0.0',
           notes: 'Release notes'

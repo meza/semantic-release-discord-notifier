@@ -44,7 +44,7 @@ export async function success(pluginConfig: PluginConfig, context: semantic.Succ
   }
 
   const embed = embedJson ? replaceVariables(embedJson, context) : defaultEmbedJson(nextRelease);
-
+  context.logger.log(`Sending Discord notification with json: "${embed}"`);
   await sendDiscordWebhook(discordWebhookUrl, embed);
 }
 
