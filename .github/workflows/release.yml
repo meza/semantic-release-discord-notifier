@@ -31,7 +31,7 @@ jobs:
         run: pnpm test
 
       - name: Collect Test Reports
-        uses: meza/collect-test-reports@v1
+        uses: meza/action-collect-test-reports@v1
 
       - name: 📦 Build
         run: pnpm build
