@@ -33,9 +33,9 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@commitlint/cli": "19.7.1",
-    "@commitlint/config-conventional": "19.7.1",
-    "@commitlint/prompt-cli": "19.7.1",
+    "@commitlint/cli": "19.8.0",
+    "@commitlint/config-conventional": "19.8.0",
+    "@commitlint/prompt-cli": "19.8.0",
     "@meza/biome": "1.1.0",
     "@meza/tsconfig-base": "1.1.0",
     "@semantic-release/changelog": "6.0.3",
