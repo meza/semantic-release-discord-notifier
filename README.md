@@ -33,16 +33,16 @@ The plugin can be configured in the [**semantic-release** configuration file](ht
 
 ### Environment Variables
 
-| Variable             | Description                               |
-|----------------------|-------------------------------------------|
-| `DISCORD_WEBHOOK`| The Discord webhook URL (if not in config)|
+| Variable          | Description                                |
+|-------------------|--------------------------------------------|
+| `DISCORD_WEBHOOK` | The Discord webhook URL (if not in config) |
 
 ### Options
 
-| Option      | Description                                      | Default |
-|-------------|--------------------------------------------------|---------|
-| `webhookUrl`| The Discord webhook URL                          | `undefined` |
-| `embedJson` | A custom Discord embed JSON object               | See below |
+| Option       | Description                        | Default     |
+|--------------|------------------------------------|-------------|
+| `webhookUrl` | The Discord webhook URL            | `undefined` |
+| `embedJson`  | A custom Discord embed JSON object | See below   |
 
 If `embedJson` is not provided, the default embed will be:
 

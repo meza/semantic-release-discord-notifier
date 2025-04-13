@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as semantic from 'semantic-release';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fail, success, verifyConditions } from './index';
@@ -145,6 +147,34 @@ describe('Semantic Release Discord Notifier', () => {
             body: JSON.stringify({
               title: 'New Release: ${nextRelease.nonExistent}',
               description: 'Release notes',
+              color: 5814783
+            })
+          })
+        );
+      });
+
+      it('should handle large change sets', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = fetchMock;
+
+        const pluginConfig = {
+          embedJson: {
+            title: 'New Release: ${nextRelease.version}',
+            description: fs.readFileSync(path.join(__dirname, '__fixtures__', 'large.md'), 'utf-8').trim(),
+            color: 5814783
+          }
+        };
+
+        await success(pluginConfig, context);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://discord.com/api/webhooks/test',
+          expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: 'New Release: 1.0.0',
+              description: fs.readFileSync(path.join(__dirname, '__fixtures__', 'large-trimmed.md'), 'utf-8').trim(),
               color: 5814783
             })
           })

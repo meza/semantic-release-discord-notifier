@@ -1,5 +1,7 @@
 import * as semantic from 'semantic-release';
 
+const ALLOWED_BODY_LENGTH = 4096;
+
 interface PluginConfig {
   webhookUrl?: string;
   embedJson?: object;
@@ -44,8 +46,34 @@ export async function success(pluginConfig: PluginConfig, context: semantic.Succ
   }
 
   const embed = embedJson ? replaceVariables(embedJson, context) : defaultEmbedJson(nextRelease);
-  context.logger.log(`Sending Discord notification with json: "${embed}"`);
-  await sendDiscordWebhook(discordWebhookUrl, embed);
+
+  const trimmed = trimEmbed(embed);
+
+  context.logger.log(`Sending Discord notification with json: "${JSON.stringify(trimmed)}"`);
+  await sendDiscordWebhook(discordWebhookUrl, JSON.stringify(trimmed));
+}
+
+function trimEmbed(embed: { description?: string }): object {
+  if (!embed.description) {
+    return embed;
+  }
+
+  const suffix = '\n\n... and more!';
+  const maxLength = ALLOWED_BODY_LENGTH - suffix.length;
+
+  if (embed.description.length <= maxLength) {
+    return embed;
+  }
+
+  const lines = embed.description.split('\n');
+
+  while (lines.join('\n').length > maxLength) {
+    lines.pop();
+  }
+
+  embed.description = lines.join('\n') + suffix;
+
+  return embed;
 }
 
 // Send a failure notification
@@ -87,8 +115,8 @@ async function sendDiscordWebhook(webhookUrl: string, message: string): Promise<
 }
 
 // Default embed JSON function for success
-function defaultEmbedJson(nextRelease: semantic.NextRelease): string {
-  return JSON.stringify({
+function defaultEmbedJson(nextRelease: semantic.NextRelease): object {
+  return {
     content: `New Release: ${nextRelease.version}`,
     embeds: [
       {
@@ -97,7 +125,7 @@ function defaultEmbedJson(nextRelease: semantic.NextRelease): string {
         color: 7377919
       }
     ]
-  });
+  };
 }
 
 // Default embed JSON function for failure
@@ -119,7 +147,7 @@ function failureEmbedJson(errors: Error[]): string {
 }
 
 // Function to replace variables in the embed JSON
-function replaceVariables(embed: object, context: semantic.SuccessContext): string {
+function replaceVariables(embed: object, context: semantic.SuccessContext): object {
   const stringified = JSON.stringify(embed);
   const replaced = stringified.replace(/\${(.*?)}/g, (match, p1) => {
     const value = p1.split('.').reduce((obj: unknown, key: string) => {
@@ -130,5 +158,5 @@ function replaceVariables(embed: object, context: semantic.SuccessContext): stri
     }, context);
     return value !== undefined ? JSON.stringify(value).slice(1, -1) : match;
   });
-  return replaced;
+  return JSON.parse(replaced);
 }
