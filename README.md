@@ -2,6 +2,9 @@
 
 A [semantic-release](https://github.com/semantic-release/semantic-release) plugin to send release notifications to Discord.
 
+> :note: 
+> This plugin is still in development and may not work as expected. Please report any issues and feature requests you encounter.
+
 ## Installation
 
 ```bash
@@ -12,6 +15,8 @@ npm install semantic-release-discord-notifier
 
 The plugin can be configured in the [**semantic-release** configuration file](https://github.com/semantic-release/semantic-release/blob/master/docs/usage/configuration.md#configuration):
 
+Below is an example of a `.releaserc` file that configures `semantic-release-discord-notifier`:
+
 ```json
 {
   "plugins": [
@@ -20,9 +25,38 @@ The plugin can be configured in the [**semantic-release** configuration file](ht
     ["semantic-release-discord-notifier", {
       "webhookUrl": "https://discord.com/api/webhooks/your-webhook-url",
       "embedJson": {
-        "title": "New Release: ${nextRelease.version}",
-        "description": "${nextRelease.notes}",
-        "color": 5814783
+        "username": "My app",
+        "avatar_url": "https://avatars.githubusercontent.com/u/211977?s=400&u=c9d3d971f2adcf6ab6045bc698c7dc70eebf04fe&v=4",
+        "content": "# :rocket: ${nextRelease.version} just dropped",
+        "embeds": [
+          {
+            "title": "What changed?",
+            "description": "${nextRelease.notes}",
+            "color": 7377919,
+            "footer": {
+              "text": "Some additional information"
+            }
+          }
+        ],
+        "components": [
+          {
+            "type": 1,
+            "components": [
+              {
+                "type": 2,
+                "style": 5,
+                "label": "Follow on twitter",
+                "url": "https://twitter.com/vsbmeza"
+              },
+              {
+                "type": 2,
+                "style": 5,
+                "label": "Sponsor the project",
+                "url": "https://github.com/sponsors/meza"
+              }
+            ]
+          }
+        ]
       }
     }]
   ]
@@ -39,22 +73,28 @@ The plugin can be configured in the [**semantic-release** configuration file](ht
 
 ### Options
 
-| Option      | Description                                      | Default |
-|-------------|--------------------------------------------------|---------|
-| `webhookUrl`| The Discord webhook URL                          | `undefined` |
-| `embedJson` | A custom Discord embed JSON object               | See below |
+| Option       | Description                          | Default     |
+|--------------|--------------------------------------|-------------|
+| `webhookUrl` | The Discord webhook URL              | `undefined` |
+| `embedJson`  | A custom Discord webhook JSON object | See below   |
+
+You can use https://message.style/app/editor or similar to generate the `embedJson` object.
+
+The `embedJson` object is the JSON object that will be sent to Discord. Aside from the (Variable Substitution)[#variable-substitution] mentioned below,
+what you speficy here will go directly to Discord unchanged.
 
 If `embedJson` is not provided, the default embed will be:
 
 ```json
 {
-  "title": "New Release: ${nextRelease.version}",
-  "description": "${nextRelease.notes}",
-  "fields": [
-    { "name": "Branch", "value": "${branch.name}" },
-    { "name": "Commits", "value": "${commits}" }
-  ],
-  "color": 5814783
+  "content": "New Release: ${nextRelease.version}",
+  "embeds": [
+        {
+          "title": "What changed?",
+          "description": "${nextRelease.notes}",
+          "color": 7377919
+        }
+    ]
 }
 ```
 
