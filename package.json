@@ -16,7 +16,13 @@
       }
     }
   },
-  "files": ["dist", "package.json", "README.md", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "lint:ci": "biome ci --reporter=github .",
@@ -27,16 +33,19 @@
     "test": "vitest --coverage"
   },
   "repository": "git+https://github.com/meza/semantic-release-discord-notifier.git",
-  "keywords": ["semantic-release", "discord"],
+  "keywords": [
+    "semantic-release",
+    "discord"
+  ],
   "author": "Meza",
   "license": "GPL-3.0",
   "type": "module",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.0.6",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
     "@commitlint/prompt-cli": "19.8.1",
-    "@meza/biome": "1.1.0",
+    "@meza/biome": "1.1.1",
     "@meza/tsconfig-base": "1.1.0",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/commit-analyzer": "13.0.1",
@@ -63,20 +72,31 @@
     "access": "public"
   },
   "commitlint": {
-    "extends": ["@commitlint/config-conventional"],
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
     "rules": {
-      "header-max-length": [0, "always", 100]
+      "header-max-length": [
+        0,
+        "always",
+        100
+      ]
     }
   },
   "dependencies": {
     "semantic-release": "24.2.5"
   },
   "tsup": {
-    "entry": ["src/index.ts"],
+    "entry": [
+      "src/index.ts"
+    ],
     "splitting": false,
     "sourcemap": false,
     "clean": true,
     "treeshake": true,
-    "format": ["cjs", "esm"]
+    "format": [
+      "cjs",
+      "esm"
+    ]
   }
 }
