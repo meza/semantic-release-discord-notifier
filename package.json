@@ -60,7 +60,7 @@
     "is-ci": "4.1.0",
     "lefthook": "1.13.0",
     "npm-run-all2": "8.0.4",
-    "pnpm": "10.15.1",
+    "pnpm": "10.16.0",
     "publint": "0.3.12",
     "semantic-release-export-data": "1.1.1",
     "tsup": "8.5.0",
