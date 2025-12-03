@@ -5,3 +5,4 @@ dist
 reports
 *.tsbuildinfo
 .cache
+bob-memory.md

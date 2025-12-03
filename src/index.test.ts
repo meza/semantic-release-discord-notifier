@@ -2,6 +2,9 @@ import * as semantic from 'semantic-release';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fail, success, verifyConditions } from './index';
 
+type SuccessContextWithBranch = semantic.SuccessContext & { branch?: { name: string } };
+type FailContextWithBranch = semantic.FailContext & { branch?: { name: string } };
+
 describe('Semantic Release Discord Notifier', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -23,16 +26,45 @@ describe('Semantic Release Discord Notifier', () => {
     it('should not throw an error if webhook URL is provided in environment variables', async () => {
       await expect(verifyConditions({})).resolves.not.toThrow();
     });
+
+    it('should skip verification when current branch does not match allowed branches', async () => {
+      vi.unstubAllEnvs();
+      const logger = { log: vi.fn() };
+
+      await expect(
+        verifyConditions({ branches: ['main'] }, {
+          branch: { name: 'develop' },
+          logger
+        } as unknown as SuccessContextWithBranch)
+      ).resolves.not.toThrow();
+
+      expect(logger.log).toHaveBeenCalledWith(
+        'Skipping Discord notification because branch "develop" does not match allowed branches: main'
+      );
+    });
+
+    it('should still enforce webhook configuration when branch matches', async () => {
+      vi.unstubAllEnvs();
+
+      await expect(
+        verifyConditions({ branches: ['main'] }, {
+          branch: { name: 'main' },
+          logger: console
+        } as unknown as SuccessContextWithBranch)
+      ).rejects.toThrow(
+        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
+      );
+    });
   });
 
   describe('success', () => {
-    const context: semantic.SuccessContext = {
+    const context: SuccessContextWithBranch = {
       logger: console,
       nextRelease: {
         version: '1.0.0',
         notes: 'Release notes'
       }
-    } as semantic.SuccessContext;
+    } as SuccessContextWithBranch;
 
     it('should throw an error if no webhook URL is set', async () => {
       vi.unstubAllEnvs();
@@ -86,14 +118,69 @@ describe('Semantic Release Discord Notifier', () => {
       expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
     });
 
+    it('should skip success notification when branch does not match configuration', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const logger = { log: vi.fn() };
+      const contextWithBranch: SuccessContextWithBranch = {
+        ...context,
+        logger,
+        branch: { name: 'develop' }
+      } as SuccessContextWithBranch;
+
+      await success({ branches: ['main'] }, contextWithBranch);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(logger.log).toHaveBeenCalledWith(
+        'Skipping Discord notification because branch "develop" does not match allowed branches: main'
+      );
+    });
+
+    it('should skip success notification when branch info is missing', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const logger = { log: vi.fn() };
+      const contextWithoutBranch: SuccessContextWithBranch = {
+        ...context,
+        logger
+      } as SuccessContextWithBranch;
+
+      await success({ branches: ['main'] }, contextWithoutBranch);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(logger.log).toHaveBeenCalledWith(
+        'Skipping Discord notification because the current branch name is not available.'
+      );
+    });
+
+    it('should allow extglob branch patterns similar to semantic-release', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const patternContext: SuccessContextWithBranch = {
+        logger: console,
+        nextRelease: {
+          version: '1.0.0',
+          notes: 'Release notes'
+        },
+        branch: { name: 'v1.2.x' }
+      } as SuccessContextWithBranch;
+
+      await success({ branches: ['v+([0-9])?(.{+([0-9]),x}).x'] }, patternContext);
+
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
     describe('variable replacement', () => {
-      const context: semantic.SuccessContext = {
+      const context: SuccessContextWithBranch = {
         logger: console,
         nextRelease: {
           version: '1.0.0',
           notes: 'Release notes'
         }
-      } as semantic.SuccessContext;
+      } as SuccessContextWithBranch;
 
       it('should replace variables in the embed JSON and send a success notification', async () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true });
@@ -207,7 +294,7 @@ describe('Semantic Release Discord Notifier', () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true });
         global.fetch = fetchMock;
 
-        const contextWithLines: semantic.SuccessContext = {
+        const contextWithLines: SuccessContextWithBranch = {
           logger: console,
           nextRelease: {
             version: '1.0.0',
@@ -217,7 +304,7 @@ with new lines
 and
 more new lines`
           }
-        } as semantic.SuccessContext;
+        } as SuccessContextWithBranch;
 
         const pluginConfig = {
           embedJson: {
@@ -240,12 +327,13 @@ more new lines`
   });
 
   describe('fail', () => {
-    const context: semantic.FailContext = {
+    const context = {
       errors: { errors: [{ message: 'whoops' }], name: 'something', message: 'Error message' },
       stdout: '',
       stderr: '',
-      logger: console
-    } as unknown as semantic.FailContext;
+      logger: console,
+      branch: { name: 'main' }
+    } as unknown as FailContextWithBranch;
 
     it('should throw an error if no webhook URL is set', async () => {
       vi.unstubAllEnvs();
@@ -293,6 +381,31 @@ more new lines`
 
       await expect(fail({}, context)).rejects.toThrow('HTTP error! status: 500');
       expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
+    });
+
+    it('should skip failure notifications when branch filter does not match', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const mismatchContext = { ...context, branch: { name: 'develop' } } as FailContextWithBranch;
+
+      await fail({ branches: ['release/*'] }, mismatchContext);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('should skip failure notifications when branch info is missing', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const logger = { log: vi.fn() };
+
+      await fail({ branches: ['main'] }, { ...context, branch: undefined, logger } as unknown as FailContextWithBranch);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(logger.log).toHaveBeenCalledWith(
+        'Skipping Discord notification because the current branch name is not available.'
+      );
     });
   });
 });

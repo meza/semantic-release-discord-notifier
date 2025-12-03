@@ -73,15 +73,18 @@ Below is an example of a `.releaserc` file that configures `semantic-release-dis
 
 ### Options
 
-| Option       | Description                          | Default     |
-|--------------|--------------------------------------|-------------|
-| `webhookUrl` | The Discord webhook URL              | `undefined` |
-| `embedJson`  | A custom Discord webhook JSON object | See below   |
+| Option       | Description                                                                                                                                                                  | Default     |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `webhookUrl` | The Discord webhook URL                                                                                                                                                      | `undefined` |
+| `embedJson`  | A custom Discord webhook JSON object                                                                                                                                         | See below   |
+| `branches`   | List of branch names or [semantic-release branch globs](https://semantic-release.gitbook.io/semantic-release/usage/configuration#branches) that should trigger notifications | `undefined` |
 
 You can use https://message.style/app/editor or similar to generate the `embedJson` object.
 
 The `embedJson` object is the JSON object that will be sent to Discord. Aside from the (Variable Substitution)[#variable-substitution] mentioned below,
 what you speficy here will go directly to Discord unchanged.
+
+When `branches` is provided, notifications are sent only when the current Git branch matches one of the configured names or patterns (the same extglob syntax semantic-release supports for its own `branches` configuration). This allows you to restrict notifications to `main`, release branches like `release/*`, or versioned branches such as `v+([0-9])?(.{+([0-9]),x}).x`.
 
 If `embedJson` is not provided, the default embed will be:
 
@@ -113,4 +116,3 @@ Available context variables include:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-

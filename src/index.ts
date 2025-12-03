@@ -1,9 +1,20 @@
+import micromatch from 'micromatch';
 import * as semantic from 'semantic-release';
 
 interface PluginConfig {
   webhookUrl?: string;
   embedJson?: object;
+  branches?: string[];
 }
+
+interface BranchInfo {
+  branch?: {
+    name?: string;
+  };
+}
+
+type SuccessContext = semantic.SuccessContext & BranchInfo;
+type FailContext = semantic.FailContext & BranchInfo;
 
 interface EnvVariables {
   DISCORD_WEBHOOK?: string;
@@ -17,8 +28,41 @@ declare global {
   }
 }
 
+type Logger = Pick<typeof console, 'log'>;
+
+function getLogger(provided?: Logger): Logger {
+  if (provided) {
+    return provided;
+  }
+  return console;
+}
+
+function getBranchName(info?: BranchInfo): string | undefined {
+  if (!info) {
+    return undefined;
+  }
+
+  const branch = info.branch;
+
+  if (!branch) {
+    return undefined;
+  }
+
+  return branch.name;
+}
+
 // Verify that the plugin is configured correctly
-export async function verifyConditions(pluginConfig: PluginConfig): Promise<void> {
+export async function verifyConditions(
+  pluginConfig: PluginConfig,
+  context?: Pick<SuccessContext, 'branch' | 'logger'>
+): Promise<void> {
+  const logger = getLogger(context ? context.logger : undefined);
+  const branchName = getBranchName(context);
+
+  if (shouldSkipBranch(pluginConfig.branches, branchName, logger)) {
+    return;
+  }
+
   const { webhookUrl } = pluginConfig;
 
   if (!webhookUrl && !process.env.DISCORD_WEBHOOK) {
@@ -29,7 +73,13 @@ export async function verifyConditions(pluginConfig: PluginConfig): Promise<void
 }
 
 // Send a success notification
-export async function success(pluginConfig: PluginConfig, context: semantic.SuccessContext): Promise<void> {
+export async function success(pluginConfig: PluginConfig, context: SuccessContext): Promise<void> {
+  const logger = getLogger(context.logger);
+  const branchName = getBranchName(context);
+
+  if (shouldSkipBranch(pluginConfig.branches, branchName, logger)) {
+    return;
+  }
   const { webhookUrl, embedJson } = pluginConfig;
   const { nextRelease } = context;
 
@@ -49,7 +99,13 @@ export async function success(pluginConfig: PluginConfig, context: semantic.Succ
 }
 
 // Send a failure notification
-export async function fail(pluginConfig: PluginConfig, context: semantic.FailContext): Promise<void> {
+export async function fail(pluginConfig: PluginConfig, context: FailContext): Promise<void> {
+  const logger = getLogger(context.logger);
+  const branchName = getBranchName(context);
+
+  if (shouldSkipBranch(pluginConfig.branches, branchName, logger)) {
+    return;
+  }
   const { webhookUrl } = pluginConfig;
   const { errors } = context;
 
@@ -119,7 +175,7 @@ function failureEmbedJson(errors: Error[]): string {
 }
 
 // Function to replace variables in the embed JSON
-function replaceVariables(embed: object, context: semantic.SuccessContext): string {
+function replaceVariables(embed: object, context: SuccessContext): string {
   const stringified = JSON.stringify(embed);
   const replaced = stringified.replace(/\${(.*?)}/g, (match, p1) => {
     const value = p1.split('.').reduce((obj: unknown, key: string) => {
@@ -131,4 +187,25 @@ function replaceVariables(embed: object, context: semantic.SuccessContext): stri
     return value !== undefined ? JSON.stringify(value).slice(1, -1) : match;
   });
   return replaced;
+}
+
+function shouldSkipBranch(branches: string[] | undefined, branchName: string | undefined, logger: Logger): boolean {
+  if (!branches || branches.length === 0) {
+    return false;
+  }
+
+  if (!branchName) {
+    logger.log('Skipping Discord notification because the current branch name is not available.');
+    return true;
+  }
+
+  const matches = branches.some((pattern) => micromatch.isMatch(branchName, pattern));
+
+  if (!matches) {
+    logger.log(
+      `Skipping Discord notification because branch "${branchName}" does not match allowed branches: ${branches.join(', ')}`
+    );
+  }
+
+  return !matches;
 }

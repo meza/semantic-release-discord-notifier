@@ -29,6 +29,7 @@
     "lint:types": "tsc --noEmit",
     "lint:package": "publint",
     "lint": "run-s lint:ci lint:types lint:package",
+    "lint:fix": "biome check --fix",
     "release": "semantic-release",
     "test": "vitest --coverage"
   },
@@ -54,6 +55,7 @@
     "@semantic-release/github": "11.0.6",
     "@semantic-release/npm": "13.1.2",
     "@semantic-release/release-notes-generator": "14.1.0",
+    "@types/micromatch": "^4.0.10",
     "@types/node": "24.10.1",
     "@vitest/coverage-v8": "3.2.4",
     "conventional-changelog-conventionalcommits": "9.1.0",
@@ -84,6 +86,7 @@
     }
   },
   "dependencies": {
+    "micromatch": "4.0.8",
     "semantic-release": "24.2.9"
   },
   "tsup": {
