@@ -17,7 +17,7 @@ jobs:
     name: 🧪 Verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: 📝 Set up node
         uses: meza/action-setup-node-pnpm@main
