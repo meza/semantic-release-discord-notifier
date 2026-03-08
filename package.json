@@ -63,7 +63,7 @@
     "lefthook": "2.1.1",
     "npm-run-all2": "8.0.4",
     "pnpm": "10.30.3",
-    "publint": "0.3.17",
+    "publint": "0.3.18",
     "semantic-release-export-data": "1.2.0",
     "tsup": "8.5.1",
     "tsx": "4.21.0",
