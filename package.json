@@ -42,7 +42,7 @@
   "license": "GPL-3.0",
   "type": "module",
   "devDependencies": {
-    "@biomejs/biome": "2.4.5",
+    "@biomejs/biome": "2.4.6",
     "@commitlint/cli": "20.4.3",
     "@commitlint/config-conventional": "20.4.3",
     "@commitlint/prompt-cli": "20.4.3",
