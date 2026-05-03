@@ -1,3 +1,7 @@
 {
-  "extends": "@meza/tsconfig-base"
+  "extends": "@meza/tsconfig-base",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "types": ["node"]
+  }
 }

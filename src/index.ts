@@ -5,6 +5,7 @@ interface PluginConfig {
   webhookUrl?: string;
   embedJson?: object;
   branches?: string[];
+  changelogTooLongMessage?: string;
 }
 
 interface BranchInfo {
@@ -80,7 +81,7 @@ export async function success(pluginConfig: PluginConfig, context: SuccessContex
   if (shouldSkipBranch(pluginConfig.branches, branchName, logger)) {
     return;
   }
-  const { webhookUrl, embedJson } = pluginConfig;
+  const { webhookUrl, embedJson, changelogTooLongMessage } = pluginConfig;
   const { nextRelease } = context;
 
   const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
@@ -93,7 +94,9 @@ export async function success(pluginConfig: PluginConfig, context: SuccessContex
     throw new Error('No release information available.');
   }
 
-  const embed = embedJson ? replaceVariables(embedJson, context) : defaultEmbedJson(nextRelease);
+  const embed = embedJson
+    ? replaceVariables(embedJson, context, changelogTooLongMessage)
+    : defaultEmbedJson(nextRelease, changelogTooLongMessage);
   context.logger.log(`Sending Discord notification with json: "${embed}"`);
   await sendDiscordWebhook(discordWebhookUrl, embed);
 }
@@ -143,13 +146,16 @@ async function sendDiscordWebhook(webhookUrl: string, message: string): Promise<
 }
 
 // Default embed JSON function for success
-function defaultEmbedJson(nextRelease: semantic.NextRelease): string {
+const DISCORD_EMBED_DESCRIPTION_LIMIT = 4096;
+const DEFAULT_CHANGELOG_TOO_LONG_MESSAGE = 'Changelog too long, check the GitHub release page for details.';
+
+function defaultEmbedJson(nextRelease: semantic.NextRelease, changelogTooLongMessage?: string): string {
   return JSON.stringify({
     content: `New Release: ${nextRelease.version}`,
     embeds: [
       {
         title: 'What changed?',
-        description: `${nextRelease.notes}`,
+        description: releaseNotesForDiscord(nextRelease.notes, changelogTooLongMessage),
         color: 7377919
       }
     ]
@@ -175,7 +181,15 @@ function failureEmbedJson(errors: Error[]): string {
 }
 
 // Function to replace variables in the embed JSON
-function replaceVariables(embed: object, context: SuccessContext): string {
+function releaseNotesForDiscord(notes: string | undefined, changelogTooLongMessage?: string): string | undefined {
+  if (notes && notes.length > DISCORD_EMBED_DESCRIPTION_LIMIT) {
+    return changelogTooLongMessage || DEFAULT_CHANGELOG_TOO_LONG_MESSAGE;
+  }
+
+  return notes;
+}
+
+function replaceVariables(embed: object, context: SuccessContext, changelogTooLongMessage?: string): string {
   const stringified = JSON.stringify(embed);
   const replaced = stringified.replace(/\${(.*?)}/g, (match, p1) => {
     const value = p1.split('.').reduce((obj: unknown, key: string) => {
@@ -184,6 +198,16 @@ function replaceVariables(embed: object, context: SuccessContext): string {
       }
       return undefined;
     }, context);
+
+    if (p1 === 'nextRelease.notes') {
+      const releaseNotes = releaseNotesForDiscord(
+        typeof value === 'string' ? value : undefined,
+        changelogTooLongMessage
+      );
+
+      return releaseNotes !== undefined ? JSON.stringify(releaseNotes).slice(1, -1) : match;
+    }
+
     return value !== undefined ? JSON.stringify(value).slice(1, -1) : match;
   });
   return replaced;

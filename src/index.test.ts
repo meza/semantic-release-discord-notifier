@@ -95,6 +95,66 @@ describe('Semantic Release Discord Notifier', () => {
         })
       );
     });
+
+    it('should replace long release notes in the default embed JSON', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      await success({}, {
+        ...context,
+        nextRelease: {
+          version: '1.0.0',
+          notes: 'a'.repeat(4097)
+        }
+      } as SuccessContextWithBranch);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://discord.com/api/webhooks/test',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: 'New Release: 1.0.0',
+            embeds: [
+              {
+                title: 'What changed?',
+                description: 'Changelog too long, check the GitHub release page for details.',
+                color: 7377919
+              }
+            ]
+          })
+        })
+      );
+    });
+
+    it('should use the configured replacement message for long release notes in the default embed JSON', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      await success({ changelogTooLongMessage: 'The changelog is too long for Discord.' }, {
+        ...context,
+        nextRelease: {
+          version: '1.0.0',
+          notes: 'a'.repeat(4097)
+        }
+      } as SuccessContextWithBranch);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://discord.com/api/webhooks/test',
+        expect.objectContaining({
+          body: JSON.stringify({
+            content: 'New Release: 1.0.0',
+            embeds: [
+              {
+                title: 'What changed?',
+                description: 'The changelog is too long for Discord.',
+                color: 7377919
+              }
+            ]
+          })
+        })
+      );
+    });
     it('should throw an error if no release information is available', async () => {
       await expect(success({}, {} as semantic.SuccessContext)).rejects.toThrow('No release information available.');
     });
@@ -320,6 +380,112 @@ more new lines`
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: '{"content":"Release notes\\n\\nwith new lines\\nand\\nmore new lines"}'
+          })
+        );
+      });
+
+      it('should replace only the changelog variable when release notes are too long', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = fetchMock;
+
+        const pluginConfig = {
+          embedJson: {
+            content: '# ${nextRelease.version} just dropped',
+            embeds: [
+              {
+                title: 'What changed?',
+                description: 'Before ${nextRelease.notes} After',
+                color: 5814783
+              }
+            ]
+          }
+        };
+
+        await success(pluginConfig, {
+          logger: console,
+          nextRelease: {
+            version: '1.0.0',
+            notes: 'a'.repeat(4097)
+          }
+        } as SuccessContextWithBranch);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://discord.com/api/webhooks/test',
+          expect.objectContaining({
+            body: JSON.stringify({
+              content: '# 1.0.0 just dropped',
+              embeds: [
+                {
+                  title: 'What changed?',
+                  description: 'Before Changelog too long, check the GitHub release page for details. After',
+                  color: 5814783
+                }
+              ]
+            })
+          })
+        );
+      });
+
+      it('should use the configured replacement message for long release notes in custom embed JSON', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = fetchMock;
+
+        const pluginConfig = {
+          changelogTooLongMessage: 'Read the full changelog on GitHub.',
+          embedJson: {
+            embeds: [
+              {
+                description: '${nextRelease.notes}'
+              }
+            ]
+          }
+        };
+
+        await success(pluginConfig, {
+          logger: console,
+          nextRelease: {
+            version: '1.0.0',
+            notes: 'a'.repeat(4097)
+          }
+        } as SuccessContextWithBranch);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://discord.com/api/webhooks/test',
+          expect.objectContaining({
+            body: JSON.stringify({
+              embeds: [
+                {
+                  description: 'Read the full changelog on GitHub.'
+                }
+              ]
+            })
+          })
+        );
+      });
+
+      it('should leave the changelog variable unchanged when release notes are not available', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = fetchMock;
+
+        const pluginConfig = {
+          embedJson: {
+            description: '${nextRelease.notes}'
+          }
+        };
+
+        await success(pluginConfig, {
+          logger: console,
+          nextRelease: {
+            version: '1.0.0'
+          }
+        } as SuccessContextWithBranch);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://discord.com/api/webhooks/test',
+          expect.objectContaining({
+            body: JSON.stringify({
+              description: '${nextRelease.notes}'
+            })
           })
         );
       });

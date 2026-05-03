@@ -32,6 +32,8 @@ jobs:
 
       - name: Collect Test Reports
         uses: meza/action-collect-test-reports@main
+        with:
+          gh-token: ${{ secrets.GH_TOKEN }}
 
       - name: 📦 Build
         run: pnpm build
