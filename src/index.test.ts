@@ -55,6 +55,28 @@ describe('Semantic Release Discord Notifier', () => {
         'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
       );
     });
+
+    it('should match semantic-release branch objects by name', async () => {
+      vi.unstubAllEnvs();
+
+      await expect(
+        verifyConditions({ branches: [{ name: 'beta', prerelease: true }] }, {
+          branch: { name: 'beta' },
+          logger: console
+        } as unknown as SuccessContextWithBranch)
+      ).rejects.toThrow(
+        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
+      );
+    });
+
+    it('should report invalid branch filters before matching', async () => {
+      await expect(
+        verifyConditions({ branches: [''] }, {
+          branch: { name: 'main' },
+          logger: console
+        } as unknown as SuccessContextWithBranch)
+      ).rejects.toThrow('Invalid branch filter at index 0. Expected a non-empty string or an object with a name.');
+    });
   });
 
   describe('success', () => {
@@ -229,6 +251,24 @@ describe('Semantic Release Discord Notifier', () => {
       } as SuccessContextWithBranch;
 
       await success({ branches: ['v+([0-9])?(.{+([0-9]),x}).x'] }, patternContext);
+
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    it('should allow object branch patterns similar to semantic-release', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock;
+
+      const patternContext: SuccessContextWithBranch = {
+        logger: console,
+        nextRelease: {
+          version: '1.0.0',
+          notes: 'Release notes'
+        },
+        branch: { name: 'alpha' }
+      } as SuccessContextWithBranch;
+
+      await success({ branches: [{ name: 'alpha', prerelease: true }] }, patternContext);
 
       expect(fetchMock).toHaveBeenCalled();
     });

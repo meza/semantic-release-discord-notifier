@@ -78,7 +78,7 @@ Below is an example of a `.releaserc` file that configures `semantic-release-dis
 |---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 | `webhookUrl`              | The Discord webhook URL                                                                                                                                                      | `undefined`                                                      |
 | `embedJson`               | A custom Discord webhook JSON object                                                                                                                                         | See below                                                        |
-| `branches`                | List of branch names or [semantic-release branch globs](https://semantic-release.gitbook.io/semantic-release/usage/configuration#branches) that should trigger notifications | `undefined`                                                      |
+| `branches`                | List of branch names, branch objects, or [semantic-release branch globs](https://semantic-release.gitbook.io/semantic-release/usage/configuration#branches) that should trigger notifications | `undefined`                                                      |
 | `changelogTooLongMessage` | Message used instead of `${nextRelease.notes}` when the changelog is longer than Discord allows in an embed description                                                      | `Changelog too long, check the GitHub release page for details.` |
 
 You can use https://message.style/app/editor or similar to generate the `embedJson` object.
@@ -86,7 +86,7 @@ You can use https://message.style/app/editor or similar to generate the `embedJs
 The `embedJson` object is the JSON object that will be sent to Discord. Aside from the (Variable Substitution)[#variable-substitution] mentioned below,
 what you speficy here will go directly to Discord unchanged.
 
-When `branches` is provided, notifications are sent only when the current Git branch matches one of the configured names or patterns (the same extglob syntax semantic-release supports for its own `branches` configuration). This allows you to restrict notifications to `main`, release branches like `release/*`, or versioned branches such as `v+([0-9])?(.{+([0-9]),x}).x`.
+When `branches` is provided, notifications are sent only when the current Git branch matches one of the configured names or patterns (the same string, object `name`, and extglob syntax semantic-release supports for its own `branches` configuration). This allows you to restrict notifications to `main`, release branches like `release/*`, prerelease branch objects like `{ "name": "beta", "prerelease": true }`, or versioned branches such as `v+([0-9])?(.{+([0-9]),x}).x`.
 
 When `${nextRelease.notes}` is longer than Discord's embed description limit, the plugin replaces only that changelog value with `changelogTooLongMessage`. The surrounding webhook JSON, including custom content, embed titles, fields, and buttons, is left unchanged.
 

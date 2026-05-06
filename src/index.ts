@@ -4,9 +4,11 @@ import * as semantic from 'semantic-release';
 interface PluginConfig {
   webhookUrl?: string;
   embedJson?: object;
-  branches?: string[];
+  branches?: BranchPattern[];
   changelogTooLongMessage?: string;
 }
+
+type BranchPattern = string | { name?: unknown; [key: string]: unknown };
 
 interface BranchInfo {
   branch?: {
@@ -213,23 +215,39 @@ function replaceVariables(embed: object, context: SuccessContext, changelogTooLo
   return replaced;
 }
 
-function shouldSkipBranch(branches: string[] | undefined, branchName: string | undefined, logger: Logger): boolean {
+function shouldSkipBranch(
+  branches: BranchPattern[] | undefined,
+  branchName: string | undefined,
+  logger: Logger
+): boolean {
   if (!branches || branches.length === 0) {
     return false;
   }
+
+  const branchPatterns = branches.map(normalizeBranchPattern);
 
   if (!branchName) {
     logger.log('Skipping Discord notification because the current branch name is not available.');
     return true;
   }
 
-  const matches = branches.some((pattern) => micromatch.isMatch(branchName, pattern));
+  const matches = branchPatterns.some((pattern) => micromatch.isMatch(branchName, pattern));
 
   if (!matches) {
     logger.log(
-      `Skipping Discord notification because branch "${branchName}" does not match allowed branches: ${branches.join(', ')}`
+      `Skipping Discord notification because branch "${branchName}" does not match allowed branches: ${branchPatterns.join(', ')}`
     );
   }
 
   return !matches;
+}
+
+function normalizeBranchPattern(branch: BranchPattern, index: number): string {
+  const pattern = typeof branch === 'string' ? branch : branch?.name;
+
+  if (typeof pattern !== 'string' || pattern.length === 0) {
+    throw new Error(`Invalid branch filter at index ${index}. Expected a non-empty string or an object with a name.`);
+  }
+
+  return pattern;
 }
