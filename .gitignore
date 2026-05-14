@@ -6,4 +6,3 @@ reports
 *.tsbuildinfo
 .cache
 bob-memory.md
-pnpm-workspace.yaml
