@@ -79,8 +79,8 @@ importers:
         specifier: 11.0.8
         version: 11.0.8
       publint:
-        specifier: 0.3.19
-        version: 0.3.19
+        specifier: 0.3.20
+        version: 0.3.20
       semantic-release-export-data:
         specifier: 1.2.0
         version: 1.2.0(semantic-release@25.0.3(typescript@6.0.3))
@@ -2129,8 +2129,8 @@ packages:
   proto-list@1.2.4:
     resolution: {integrity: sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==}
 
-  publint@0.3.19:
-    resolution: {integrity: sha512-J3p4GOocCRFyLLFRzGfIhAwWgk0Kkcdxj5iFspFvCYbyiJs5IhCM8gsIkcNeQL+tdpV671RtJQiTFSUKhl1Wjg==}
+  publint@0.3.20:
+    resolution: {integrity: sha512-UWqFYP7VBVCe9l/leEEGJrDs6Am4K4KapLmLi5qbt+9fA+Ny38ghdW+bw1nYfVqCK8/3kgsxjjhFjTYqYYRpyw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4520,7 +4520,7 @@ snapshots:
 
   proto-list@1.2.4: {}
 
-  publint@0.3.19:
+  publint@0.3.20:
     dependencies:
       '@publint/pack': 0.1.4
       package-manager-detector: 1.6.0
