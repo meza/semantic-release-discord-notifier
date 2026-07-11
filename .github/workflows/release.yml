@@ -17,10 +17,10 @@ jobs:
     name: 🧪 Verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: 📝 Set up node
-        uses: meza/action-setup-node-pnpm@main
+        uses: meza/action-setup-node-pnpm@71aff4165b6066ca9cc0748cb0859786b78bf35f # main
         with:
           install: true
 
@@ -31,7 +31,7 @@ jobs:
         run: pnpm test
 
       - name: Collect Test Reports
-        uses: meza/action-collect-test-reports@main
+        uses: meza/action-collect-test-reports@bd9a9e9c9a87e4f878a8e6b507de5634b7ab1a2c # main
         with:
           gh-token: ${{ secrets.GH_TOKEN }}
 
