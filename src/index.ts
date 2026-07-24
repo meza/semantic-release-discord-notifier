@@ -1,5 +1,5 @@
+import type * as semantic from 'semantic-release';
 import micromatch from 'micromatch';
-import * as semantic from 'semantic-release';
 
 interface PluginConfig {
   webhookUrl?: string;
@@ -40,6 +40,14 @@ function getLogger(provided?: Logger): Logger {
   return console;
 }
 
+function resolveDiscordWebhookUrl(configuredWebhookUrl?: string): string | undefined {
+  if (configuredWebhookUrl) {
+    return configuredWebhookUrl;
+  }
+
+  return process.env.DISCORD_WEBHOOK;
+}
+
 function getBranchName(info?: BranchInfo): string | undefined {
   if (!info) {
     return undefined;
@@ -55,10 +63,10 @@ function getBranchName(info?: BranchInfo): string | undefined {
 }
 
 // Verify that the plugin is configured correctly
-export async function verifyConditions(
+export function verifyConditions(
   pluginConfig: PluginConfig,
   context?: Pick<SuccessContext, 'branch' | 'logger'>
-): Promise<void> {
+): void {
   const logger = getLogger(context ? context.logger : undefined);
   const branchName = getBranchName(context);
 
@@ -66,9 +74,7 @@ export async function verifyConditions(
     return;
   }
 
-  const { webhookUrl } = pluginConfig;
-
-  if (!webhookUrl && !process.env.DISCORD_WEBHOOK) {
+  if (!resolveDiscordWebhookUrl(pluginConfig.webhookUrl)) {
     throw new Error(
       'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
     );
@@ -86,7 +92,7 @@ export async function success(pluginConfig: PluginConfig, context: SuccessContex
   const { webhookUrl, embedJson, changelogTooLongMessage } = pluginConfig;
   const { nextRelease } = context;
 
-  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
+  const discordWebhookUrl = resolveDiscordWebhookUrl(webhookUrl);
 
   if (!discordWebhookUrl) {
     throw new Error('Discord webhook URL is not set.');
@@ -114,7 +120,7 @@ export async function fail(pluginConfig: PluginConfig, context: FailContext): Pr
   const { webhookUrl } = pluginConfig;
   const { errors } = context;
 
-  const discordWebhookUrl = webhookUrl || process.env.DISCORD_WEBHOOK;
+  const discordWebhookUrl = resolveDiscordWebhookUrl(webhookUrl);
 
   if (!discordWebhookUrl) {
     throw new Error('Discord webhook URL is not set.');
@@ -185,7 +191,11 @@ function failureEmbedJson(errors: Error[]): string {
 // Function to replace variables in the embed JSON
 function releaseNotesForDiscord(notes: string | undefined, changelogTooLongMessage?: string): string | undefined {
   if (notes && notes.length > DISCORD_EMBED_DESCRIPTION_LIMIT) {
-    return changelogTooLongMessage || DEFAULT_CHANGELOG_TOO_LONG_MESSAGE;
+    if (changelogTooLongMessage) {
+      return changelogTooLongMessage;
+    }
+
+    return DEFAULT_CHANGELOG_TOO_LONG_MESSAGE;
   }
 
   return notes;
@@ -243,7 +253,7 @@ function shouldSkipBranch(
 }
 
 function normalizeBranchPattern(branch: BranchPattern, index: number): string {
-  const pattern = typeof branch === 'string' ? branch : branch?.name;
+  const pattern = typeof branch === 'string' ? branch : branch.name;
 
   if (typeof pattern !== 'string' || pattern.length === 0) {
     throw new Error(`Invalid branch filter at index ${index}. Expected a non-empty string or an object with a name.`);
