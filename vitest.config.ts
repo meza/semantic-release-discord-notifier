@@ -9,7 +9,7 @@ if (!isCi) {
   coverageReporters.push('html');
 } else {
   testReporters.push('junit');
-  coverageReporters.push('cobertura');
+  coverageReporters.push('json-summary', 'json');
 }
 
 export default defineConfig({
