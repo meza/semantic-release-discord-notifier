@@ -1,617 +1,617 @@
-import * as semantic from 'semantic-release';
+import type * as semantic from 'semantic-release';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fail, success, verifyConditions } from './index';
 
 type SuccessContextWithBranch = semantic.SuccessContext & { branch?: { name: string } };
 type FailContextWithBranch = semantic.FailContext & { branch?: { name: string } };
+const RELEASE_NOTES_OVER_DESCRIPTION_LIMIT_LENGTH = 4097;
+const SUCCESS_CONTEXT = {
+  logger: console,
+  nextRelease: {
+    version: '1.0.0',
+    notes: 'Release notes'
+  }
+} as SuccessContextWithBranch;
 
-describe('Semantic Release Discord Notifier', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.unstubAllEnvs();
+  vi.stubEnv('DISCORD_WEBHOOK', 'https://discord.com/api/webhooks/test');
+});
+
+describe('verifyConditions', () => {
+  it('should throw an error if no webhook URL is provided', () => {
     vi.unstubAllEnvs();
-    vi.stubEnv('DISCORD_WEBHOOK', 'https://discord.com/api/webhooks/test');
-  });
-  describe('verifyConditions', () => {
-    it('should throw an error if no webhook URL is provided', async () => {
-      vi.unstubAllEnvs();
-      await expect(verifyConditions({})).rejects.toThrow(
-        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
-      );
-    });
-
-    it('should not throw an error if webhook URL is provided in plugin config', async () => {
-      await expect(verifyConditions({ webhookUrl: 'https://discord.com/api/webhooks/test' })).resolves.not.toThrow();
-    });
-
-    it('should not throw an error if webhook URL is provided in environment variables', async () => {
-      await expect(verifyConditions({})).resolves.not.toThrow();
-    });
-
-    it('should skip verification when current branch does not match allowed branches', async () => {
-      vi.unstubAllEnvs();
-      const logger = { log: vi.fn() };
-
-      await expect(
-        verifyConditions({ branches: ['main'] }, {
-          branch: { name: 'develop' },
-          logger
-        } as unknown as SuccessContextWithBranch)
-      ).resolves.not.toThrow();
-
-      expect(logger.log).toHaveBeenCalledWith(
-        'Skipping Discord notification because branch "develop" does not match allowed branches: main'
-      );
-    });
-
-    it('should still enforce webhook configuration when branch matches', async () => {
-      vi.unstubAllEnvs();
-
-      await expect(
-        verifyConditions({ branches: ['main'] }, {
-          branch: { name: 'main' },
-          logger: console
-        } as unknown as SuccessContextWithBranch)
-      ).rejects.toThrow(
-        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
-      );
-    });
-
-    it('should match semantic-release branch objects by name', async () => {
-      vi.unstubAllEnvs();
-
-      await expect(
-        verifyConditions({ branches: [{ name: 'beta', prerelease: true }] }, {
-          branch: { name: 'beta' },
-          logger: console
-        } as unknown as SuccessContextWithBranch)
-      ).rejects.toThrow(
-        'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
-      );
-    });
-
-    it('should report invalid branch filters before matching', async () => {
-      await expect(
-        verifyConditions({ branches: [''] }, {
-          branch: { name: 'main' },
-          logger: console
-        } as unknown as SuccessContextWithBranch)
-      ).rejects.toThrow('Invalid branch filter at index 0. Expected a non-empty string or an object with a name.');
-    });
+    expect(() => verifyConditions({})).toThrow(
+      'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
+    );
   });
 
-  describe('success', () => {
-    const context: SuccessContextWithBranch = {
+  it('should not throw an error if webhook URL is provided in plugin config', () => {
+    expect(() => verifyConditions({ webhookUrl: 'https://discord.com/api/webhooks/test' })).not.toThrow();
+  });
+
+  it('should not throw an error if webhook URL is provided in environment variables', () => {
+    expect(() => verifyConditions({})).not.toThrow();
+  });
+
+  it('should skip verification when current branch does not match allowed branches', () => {
+    vi.unstubAllEnvs();
+    const logger = { log: vi.fn() };
+
+    expect(() =>
+      verifyConditions({ branches: ['main'] }, {
+        branch: { name: 'develop' },
+        logger
+      } as unknown as SuccessContextWithBranch)
+    ).not.toThrow();
+
+    expect(logger.log).toHaveBeenCalledWith(
+      'Skipping Discord notification because branch "develop" does not match allowed branches: main'
+    );
+  });
+
+  it('should still enforce webhook configuration when branch matches', () => {
+    vi.unstubAllEnvs();
+
+    expect(() =>
+      verifyConditions({ branches: ['main'] }, {
+        branch: { name: 'main' },
+        logger: console
+      } as unknown as SuccessContextWithBranch)
+    ).toThrow(
+      'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
+    );
+  });
+
+  it('should match semantic-release branch objects by name', () => {
+    vi.unstubAllEnvs();
+
+    expect(() =>
+      verifyConditions({ branches: [{ name: 'beta', prerelease: true }] }, {
+        branch: { name: 'beta' },
+        logger: console
+      } as unknown as SuccessContextWithBranch)
+    ).toThrow(
+      'No Discord webhook URL provided. Set it in the plugin config or as DISCORD_WEBHOOK environment variable.'
+    );
+  });
+
+  it('should report invalid branch filters before matching', () => {
+    expect(() =>
+      verifyConditions({ branches: [''] }, {
+        branch: { name: 'main' },
+        logger: console
+      } as unknown as SuccessContextWithBranch)
+    ).toThrow('Invalid branch filter at index 0. Expected a non-empty string or an object with a name.');
+  });
+});
+
+describe('success notification payloads', () => {
+  it('should throw an error if no webhook URL is set', async () => {
+    vi.unstubAllEnvs();
+    await expect(success({}, SUCCESS_CONTEXT)).rejects.toThrow('Discord webhook URL is not set.');
+  });
+
+  it('should send a success notification with default embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    await success({}, SUCCESS_CONTEXT);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: 'New Release: 1.0.0',
+          embeds: [
+            {
+              title: 'What changed?',
+              description: 'Release notes',
+              color: 7377919
+            }
+          ]
+        })
+      })
+    );
+  });
+
+  it('should replace long release notes in the default embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    await success({}, {
+      ...SUCCESS_CONTEXT,
+      nextRelease: {
+        version: '1.0.0',
+        notes: 'a'.repeat(RELEASE_NOTES_OVER_DESCRIPTION_LIMIT_LENGTH)
+      }
+    } as SuccessContextWithBranch);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: 'New Release: 1.0.0',
+          embeds: [
+            {
+              title: 'What changed?',
+              description: 'Changelog too long, check the GitHub release page for details.',
+              color: 7377919
+            }
+          ]
+        })
+      })
+    );
+  });
+
+  it('should use the configured replacement message for long release notes in the default embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    await success({ changelogTooLongMessage: 'The changelog is too long for Discord.' }, {
+      ...SUCCESS_CONTEXT,
+      nextRelease: {
+        version: '1.0.0',
+        notes: 'a'.repeat(RELEASE_NOTES_OVER_DESCRIPTION_LIMIT_LENGTH)
+      }
+    } as SuccessContextWithBranch);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        body: JSON.stringify({
+          content: 'New Release: 1.0.0',
+          embeds: [
+            {
+              title: 'What changed?',
+              description: 'The changelog is too long for Discord.',
+              color: 7377919
+            }
+          ]
+        })
+      })
+    );
+  });
+});
+
+describe('success error handling', () => {
+  it('should throw an error if no release information is available', async () => {
+    await expect(success({}, {} as semantic.SuccessContext)).rejects.toThrow('No release information available.');
+  });
+  it('should handle errors when sending a success notification', async () => {
+    const consoleSpy = vi.spyOn(console, 'error');
+    consoleSpy.mockImplementation(() => {});
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
+    global.fetch = fetchMock;
+
+    await expect(success({}, SUCCESS_CONTEXT)).rejects.toThrow('Network error');
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
+  });
+
+  it('should handle http errors when sending a success notification', async () => {
+    const consoleSpy = vi.spyOn(console, 'error');
+    consoleSpy.mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    global.fetch = fetchMock;
+
+    await expect(success({}, SUCCESS_CONTEXT)).rejects.toThrow('HTTP error! status: 500');
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
+  });
+});
+
+describe('success branch filtering', () => {
+  it('should skip success notification when branch does not match configuration', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const logger = { log: vi.fn() };
+    const contextWithBranch: SuccessContextWithBranch = {
+      ...SUCCESS_CONTEXT,
+      logger,
+      branch: { name: 'develop' }
+    } as SuccessContextWithBranch;
+
+    await success({ branches: ['main'] }, contextWithBranch);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      'Skipping Discord notification because branch "develop" does not match allowed branches: main'
+    );
+  });
+
+  it('should skip success notification when branch info is missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const logger = { log: vi.fn() };
+    const contextWithoutBranch: SuccessContextWithBranch = {
+      ...SUCCESS_CONTEXT,
+      logger
+    } as SuccessContextWithBranch;
+
+    await success({ branches: ['main'] }, contextWithoutBranch);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      'Skipping Discord notification because the current branch name is not available.'
+    );
+  });
+
+  it('should allow extglob branch patterns similar to semantic-release', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const patternContext: SuccessContextWithBranch = {
       logger: console,
       nextRelease: {
         version: '1.0.0',
         notes: 'Release notes'
-      }
+      },
+      branch: { name: 'v1.2.x' }
     } as SuccessContextWithBranch;
 
-    it('should throw an error if no webhook URL is set', async () => {
-      vi.unstubAllEnvs();
-      await expect(success({}, context)).rejects.toThrow('Discord webhook URL is not set.');
-    });
+    await success({ branches: ['v+([0-9])?(.{+([0-9]),x}).x'] }, patternContext);
 
-    it('should send a success notification with default embed JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+    expect(fetchMock).toHaveBeenCalled();
+  });
 
-      await success({}, context);
+  it('should allow object branch patterns similar to semantic-release', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://discord.com/api/webhooks/test',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: 'New Release: 1.0.0',
-            embeds: [
-              {
-                title: 'What changed?',
-                description: 'Release notes',
-                color: 7377919
-              }
-            ]
-          })
+    const patternContext: SuccessContextWithBranch = {
+      logger: console,
+      nextRelease: {
+        version: '1.0.0',
+        notes: 'Release notes'
+      },
+      branch: { name: 'alpha' }
+    } as SuccessContextWithBranch;
+
+    await success({ branches: [{ name: 'alpha', prerelease: true }] }, patternContext);
+
+    expect(fetchMock).toHaveBeenCalled();
+  });
+});
+
+describe('success variable replacement', () => {
+  it('should replace variables in the embed JSON and send a success notification', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const pluginConfig = {
+      embedJson: {
+        title: 'New Release: ${nextRelease.version}',
+        description: '${nextRelease.notes}',
+        color: 5814783
+      }
+    };
+
+    await success(pluginConfig, SUCCESS_CONTEXT);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'New Release: 1.0.0',
+          description: 'Release notes',
+          color: 5814783
         })
-      );
-    });
+      })
+    );
+  });
 
-    it('should replace long release notes in the default embed JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+  it('should leave variables unchanged if they do not exist in the context', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      await success({}, {
-        ...context,
-        nextRelease: {
-          version: '1.0.0',
-          notes: 'a'.repeat(4097)
-        }
-      } as SuccessContextWithBranch);
+    const pluginConfig = {
+      embedJson: {
+        title: 'New Release: ${nextRelease.nonExistent}',
+        description: '${nextRelease.notes}',
+        color: 5814783
+      }
+    };
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://discord.com/api/webhooks/test',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: 'New Release: 1.0.0',
-            embeds: [
-              {
-                title: 'What changed?',
-                description: 'Changelog too long, check the GitHub release page for details.',
-                color: 7377919
-              }
-            ]
-          })
+    await success(pluginConfig, SUCCESS_CONTEXT);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'New Release: ${nextRelease.nonExistent}',
+          description: 'Release notes',
+          color: 5814783
         })
-      );
-    });
+      })
+    );
+  });
+});
 
-    it('should use the configured replacement message for long release notes in the default embed JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+describe('success structured variable replacement', () => {
+  it('should handle nested variables in the embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      await success({ changelogTooLongMessage: 'The changelog is too long for Discord.' }, {
-        ...context,
-        nextRelease: {
-          version: '1.0.0',
-          notes: 'a'.repeat(4097)
-        }
-      } as SuccessContextWithBranch);
-
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://discord.com/api/webhooks/test',
-        expect.objectContaining({
-          body: JSON.stringify({
-            content: 'New Release: 1.0.0',
-            embeds: [
-              {
-                title: 'What changed?',
-                description: 'The changelog is too long for Discord.',
-                color: 7377919
-              }
-            ]
-          })
-        })
-      );
-    });
-    it('should throw an error if no release information is available', async () => {
-      await expect(success({}, {} as semantic.SuccessContext)).rejects.toThrow('No release information available.');
-    });
-    it('should handle errors when sending a success notification', async () => {
-      const consoleSpy = vi.spyOn(console, 'error');
-      consoleSpy.mockImplementation(() => {});
-      const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
-      global.fetch = fetchMock;
-
-      await expect(success({}, context)).rejects.toThrow('Network error');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
-    });
-
-    it('should handle http errors when sending a success notification', async () => {
-      const consoleSpy = vi.spyOn(console, 'error');
-      consoleSpy.mockImplementation(() => {});
-      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
-      global.fetch = fetchMock;
-
-      await expect(success({}, context)).rejects.toThrow('HTTP error! status: 500');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
-    });
-
-    it('should skip success notification when branch does not match configuration', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
-
-      const logger = { log: vi.fn() };
-      const contextWithBranch: SuccessContextWithBranch = {
-        ...context,
-        logger,
-        branch: { name: 'develop' }
-      } as SuccessContextWithBranch;
-
-      await success({ branches: ['main'] }, contextWithBranch);
-
-      expect(fetchMock).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        'Skipping Discord notification because branch "develop" does not match allowed branches: main'
-      );
-    });
-
-    it('should skip success notification when branch info is missing', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
-
-      const logger = { log: vi.fn() };
-      const contextWithoutBranch: SuccessContextWithBranch = {
-        ...context,
-        logger
-      } as SuccessContextWithBranch;
-
-      await success({ branches: ['main'] }, contextWithoutBranch);
-
-      expect(fetchMock).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        'Skipping Discord notification because the current branch name is not available.'
-      );
-    });
-
-    it('should allow extglob branch patterns similar to semantic-release', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
-
-      const patternContext: SuccessContextWithBranch = {
-        logger: console,
-        nextRelease: {
-          version: '1.0.0',
-          notes: 'Release notes'
+    const pluginConfig = {
+      embedJson: {
+        title: 'New Release: ${nextRelease.version}',
+        details: {
+          notes: '${nextRelease.notes}'
         },
-        branch: { name: 'v1.2.x' }
-      } as SuccessContextWithBranch;
+        color: 5814783
+      }
+    };
 
-      await success({ branches: ['v+([0-9])?(.{+([0-9]),x}).x'] }, patternContext);
+    await success(pluginConfig, SUCCESS_CONTEXT);
 
-      expect(fetchMock).toHaveBeenCalled();
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'New Release: 1.0.0',
+          details: {
+            notes: 'Release notes'
+          },
+          color: 5814783
+        })
+      })
+    );
+  });
 
-    it('should allow object branch patterns similar to semantic-release', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+  it('should handle empty embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      const patternContext: SuccessContextWithBranch = {
-        logger: console,
-        nextRelease: {
-          version: '1.0.0',
-          notes: 'Release notes'
-        },
-        branch: { name: 'alpha' }
-      } as SuccessContextWithBranch;
+    const pluginConfig = {
+      embedJson: {}
+    };
 
-      await success({ branches: [{ name: 'alpha', prerelease: true }] }, patternContext);
+    await success(pluginConfig, SUCCESS_CONTEXT);
 
-      expect(fetchMock).toHaveBeenCalled();
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+    );
+  });
 
-    describe('variable replacement', () => {
-      const context: SuccessContextWithBranch = {
-        logger: console,
-        nextRelease: {
-          version: '1.0.0',
-          notes: 'Release notes'
-        }
-      } as SuccessContextWithBranch;
+  it('should handle new lines in variables', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      it('should replace variables in the embed JSON and send a success notification', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {
-            title: 'New Release: ${nextRelease.version}',
-            description: '${nextRelease.notes}',
-            color: 5814783
-          }
-        };
-
-        await success(pluginConfig, context);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: 'New Release: 1.0.0',
-              description: 'Release notes',
-              color: 5814783
-            })
-          })
-        );
-      });
-
-      it('should leave variables unchanged if they do not exist in the context', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {
-            title: 'New Release: ${nextRelease.nonExistent}',
-            description: '${nextRelease.notes}',
-            color: 5814783
-          }
-        };
-
-        await success(pluginConfig, context);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: 'New Release: ${nextRelease.nonExistent}',
-              description: 'Release notes',
-              color: 5814783
-            })
-          })
-        );
-      });
-
-      it('should handle nested variables in the embed JSON', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {
-            title: 'New Release: ${nextRelease.version}',
-            details: {
-              notes: '${nextRelease.notes}'
-            },
-            color: 5814783
-          }
-        };
-
-        await success(pluginConfig, context);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: 'New Release: 1.0.0',
-              details: {
-                notes: 'Release notes'
-              },
-              color: 5814783
-            })
-          })
-        );
-      });
-
-      it('should handle empty embed JSON', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {}
-        };
-
-        await success(pluginConfig, context);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          })
-        );
-      });
-
-      it('should handle new lines in variables', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const contextWithLines: SuccessContextWithBranch = {
-          logger: console,
-          nextRelease: {
-            version: '1.0.0',
-            notes: `Release notes
+    const contextWithLines: SuccessContextWithBranch = {
+      logger: console,
+      nextRelease: {
+        version: '1.0.0',
+        notes: `Release notes
 
 with new lines
 and
 more new lines`
+      }
+    } as SuccessContextWithBranch;
+
+    const pluginConfig = {
+      embedJson: {
+        content: '${nextRelease.notes}'
+      }
+    };
+
+    await success(pluginConfig, contextWithLines);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"content":"Release notes\\n\\nwith new lines\\nand\\nmore new lines"}'
+      })
+    );
+  });
+});
+
+describe('success changelog variable replacement', () => {
+  it('should replace only the changelog variable when release notes are too long', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const pluginConfig = {
+      embedJson: {
+        content: '# ${nextRelease.version} just dropped',
+        embeds: [
+          {
+            title: 'What changed?',
+            description: 'Before ${nextRelease.notes} After',
+            color: 5814783
           }
-        } as SuccessContextWithBranch;
+        ]
+      }
+    };
 
-        const pluginConfig = {
-          embedJson: {
-            content: '${nextRelease.notes}'
-          }
-        };
+    await success(pluginConfig, {
+      logger: console,
+      nextRelease: {
+        version: '1.0.0',
+        notes: 'a'.repeat(RELEASE_NOTES_OVER_DESCRIPTION_LIMIT_LENGTH)
+      }
+    } as SuccessContextWithBranch);
 
-        await success(pluginConfig, contextWithLines);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: '{"content":"Release notes\\n\\nwith new lines\\nand\\nmore new lines"}'
-          })
-        );
-      });
-
-      it('should replace only the changelog variable when release notes are too long', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {
-            content: '# ${nextRelease.version} just dropped',
-            embeds: [
-              {
-                title: 'What changed?',
-                description: 'Before ${nextRelease.notes} After',
-                color: 5814783
-              }
-            ]
-          }
-        };
-
-        await success(pluginConfig, {
-          logger: console,
-          nextRelease: {
-            version: '1.0.0',
-            notes: 'a'.repeat(4097)
-          }
-        } as SuccessContextWithBranch);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            body: JSON.stringify({
-              content: '# 1.0.0 just dropped',
-              embeds: [
-                {
-                  title: 'What changed?',
-                  description: 'Before Changelog too long, check the GitHub release page for details. After',
-                  color: 5814783
-                }
-              ]
-            })
-          })
-        );
-      });
-
-      it('should use the configured replacement message for long release notes in custom embed JSON', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          changelogTooLongMessage: 'Read the full changelog on GitHub.',
-          embedJson: {
-            embeds: [
-              {
-                description: '${nextRelease.notes}'
-              }
-            ]
-          }
-        };
-
-        await success(pluginConfig, {
-          logger: console,
-          nextRelease: {
-            version: '1.0.0',
-            notes: 'a'.repeat(4097)
-          }
-        } as SuccessContextWithBranch);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            body: JSON.stringify({
-              embeds: [
-                {
-                  description: 'Read the full changelog on GitHub.'
-                }
-              ]
-            })
-          })
-        );
-      });
-
-      it('should leave the changelog variable unchanged when release notes are not available', async () => {
-        const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-        global.fetch = fetchMock;
-
-        const pluginConfig = {
-          embedJson: {
-            description: '${nextRelease.notes}'
-          }
-        };
-
-        await success(pluginConfig, {
-          logger: console,
-          nextRelease: {
-            version: '1.0.0'
-          }
-        } as SuccessContextWithBranch);
-
-        expect(fetchMock).toHaveBeenCalledWith(
-          'https://discord.com/api/webhooks/test',
-          expect.objectContaining({
-            body: JSON.stringify({
-              description: '${nextRelease.notes}'
-            })
-          })
-        );
-      });
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        body: JSON.stringify({
+          content: '# 1.0.0 just dropped',
+          embeds: [
+            {
+              title: 'What changed?',
+              description: 'Before Changelog too long, check the GitHub release page for details. After',
+              color: 5814783
+            }
+          ]
+        })
+      })
+    );
   });
 
-  describe('fail', () => {
-    const context = {
-      errors: { errors: [{ message: 'whoops' }], name: 'something', message: 'Error message' },
-      stdout: '',
-      stderr: '',
+  it('should use the configured replacement message for long release notes in custom embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const pluginConfig = {
+      changelogTooLongMessage: 'Read the full changelog on GitHub.',
+      embedJson: {
+        embeds: [
+          {
+            description: '${nextRelease.notes}'
+          }
+        ]
+      }
+    };
+
+    await success(pluginConfig, {
       logger: console,
-      branch: { name: 'main' }
-    } as unknown as FailContextWithBranch;
+      nextRelease: {
+        version: '1.0.0',
+        notes: 'a'.repeat(RELEASE_NOTES_OVER_DESCRIPTION_LIMIT_LENGTH)
+      }
+    } as SuccessContextWithBranch);
 
-    it('should throw an error if no webhook URL is set', async () => {
-      vi.unstubAllEnvs();
-      await expect(fail({}, context)).rejects.toThrow('Discord webhook URL is not set.');
-    });
-
-    it('should send a failure notification with default embed JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
-
-      await fail({}, context);
-
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://discord.com/api/webhooks/test',
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: 'Release Failed',
-            embeds: [
-              {
-                title: 'Error',
-                description: 'whoops',
-                color: 15158332
-              }
-            ]
-          })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        body: JSON.stringify({
+          embeds: [
+            {
+              description: 'Read the full changelog on GitHub.'
+            }
+          ]
         })
-      );
-    });
-    it('should handle errors when sending a failure notification', async () => {
-      const consoleSpy = vi.spyOn(console, 'error');
-      consoleSpy.mockImplementation(() => {});
-      const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
-      global.fetch = fetchMock;
+      })
+    );
+  });
 
-      await expect(fail({}, context)).rejects.toThrow('Network error');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
-    });
-    it('should handle http errors when sending a failure notification', async () => {
-      const consoleSpy = vi.spyOn(console, 'error');
-      consoleSpy.mockImplementation(() => {});
-      const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
-      global.fetch = fetchMock;
+  it('should leave the changelog variable unchanged when release notes are not available', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      await expect(fail({}, context)).rejects.toThrow('HTTP error! status: 500');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
-    });
+    const pluginConfig = {
+      embedJson: {
+        description: '${nextRelease.notes}'
+      }
+    };
 
-    it('should skip failure notifications when branch filter does not match', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+    await success(pluginConfig, {
+      logger: console,
+      nextRelease: {
+        version: '1.0.0'
+      }
+    } as SuccessContextWithBranch);
 
-      const mismatchContext = { ...context, branch: { name: 'develop' } } as FailContextWithBranch;
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        body: JSON.stringify({
+          description: '${nextRelease.notes}'
+        })
+      })
+    );
+  });
+});
 
-      await fail({ branches: ['release/*'] }, mismatchContext);
+describe('fail', () => {
+  const context = {
+    errors: { errors: [{ message: 'whoops' }], name: 'something', message: 'Error message' },
+    stdout: '',
+    stderr: '',
+    logger: console,
+    branch: { name: 'main' }
+  } as unknown as FailContextWithBranch;
 
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
+  it('should throw an error if no webhook URL is set', async () => {
+    vi.unstubAllEnvs();
+    await expect(fail({}, context)).rejects.toThrow('Discord webhook URL is not set.');
+  });
 
-    it('should skip failure notifications when branch info is missing', async () => {
-      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-      global.fetch = fetchMock;
+  it('should send a failure notification with default embed JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
 
-      const logger = { log: vi.fn() };
+    await fail({}, context);
 
-      await fail({ branches: ['main'] }, { ...context, branch: undefined, logger } as unknown as FailContextWithBranch);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/webhooks/test',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: 'Release Failed',
+          embeds: [
+            {
+              title: 'Error',
+              description: 'whoops',
+              color: 15158332
+            }
+          ]
+        })
+      })
+    );
+  });
+  it('should handle errors when sending a failure notification', async () => {
+    const consoleSpy = vi.spyOn(console, 'error');
+    consoleSpy.mockImplementation(() => {});
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
+    global.fetch = fetchMock;
 
-      expect(fetchMock).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        'Skipping Discord notification because the current branch name is not available.'
-      );
-    });
+    await expect(fail({}, context)).rejects.toThrow('Network error');
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
+  });
+  it('should handle http errors when sending a failure notification', async () => {
+    const consoleSpy = vi.spyOn(console, 'error');
+    consoleSpy.mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    global.fetch = fetchMock;
+
+    await expect(fail({}, context)).rejects.toThrow('HTTP error! status: 500');
+    expect(consoleSpy).toHaveBeenCalledWith('Failed to send Discord notification:', expect.any(Error));
+  });
+
+  it('should skip failure notifications when branch filter does not match', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const mismatchContext = { ...context, branch: { name: 'develop' } } as FailContextWithBranch;
+
+    await fail({ branches: ['release/*'] }, mismatchContext);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('should skip failure notifications when branch info is missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const logger = { log: vi.fn() };
+
+    await fail({ branches: ['main'] }, { ...context, branch: undefined, logger } as unknown as FailContextWithBranch);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      'Skipping Discord notification because the current branch name is not available.'
+    );
   });
 });
