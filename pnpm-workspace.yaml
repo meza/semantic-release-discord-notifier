@@ -2,3 +2,5 @@ allowBuilds:
   esbuild: true
   lefthook: true
 strictDepBuilds: true
+minimumReleaseAge: 10080
+trustLockfile: true
