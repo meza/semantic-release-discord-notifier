@@ -79,8 +79,8 @@ importers:
         specifier: 11.15.0
         version: 11.15.0
       publint:
-        specifier: 0.3.21
-        version: 0.3.21
+        specifier: 0.3.22
+        version: 0.3.22
       semantic-release-export-data:
         specifier: 1.2.0
         version: 1.2.0(semantic-release@25.0.8(supports-color@7.2.0)(typescript@7.0.2))
@@ -2305,8 +2305,8 @@ packages:
       kerberos:
         optional: true
 
-  publint@0.3.21:
-    resolution: {integrity: sha512-OqejcnMV6E9zel2oCrUOJEiiFkGiAAni0A6ibfQNh1k9Gu5z4F+Yso8lllam7AzmV6Do0vp7u3UpZNRBwuXaHQ==}
+  publint@0.3.22:
+    resolution: {integrity: sha512-6Z/scsr5CA7APdwyF35EY88CqgDj1textWuY788DVTJYPCWVv/Wn9G6KmLnrVRnStgYcahqN4wCDLZGSbQJ69w==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -4804,7 +4804,7 @@ snapshots:
 
   proxy-agent-negotiate@1.1.0: {}
 
-  publint@0.3.21:
+  publint@0.3.22:
     dependencies:
       '@publint/pack': 0.1.6
       package-manager-detector: 1.8.0
