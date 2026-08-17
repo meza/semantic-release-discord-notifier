@@ -58,7 +58,7 @@
     "@types/micromatch": "^4.0.10",
     "@types/node": "24.13.3",
     "@vitest/coverage-v8": "3.2.7",
-    "conventional-changelog-conventionalcommits": "10.2.1",
+    "conventional-changelog-conventionalcommits": "10.3.0",
     "is-ci": "4.1.0",
     "lefthook": "2.1.10",
     "npm-run-all2": "9.0.3",
