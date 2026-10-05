@@ -76,8 +76,8 @@ importers:
         specifier: 9.0.3
         version: 9.0.3
       pnpm:
-        specifier: 11.28.0
-        version: 11.28.0
+        specifier: 11.28.1
+        version: 11.28.1
       publint:
         specifier: 0.3.24
         version: 0.3.24
@@ -2277,8 +2277,8 @@ packages:
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
 
-  pnpm@11.28.0:
-    resolution: {integrity: sha512-jtI5Nx3oIkS2zM+eICPBjqhDmWHy7D/omJE7n37i52ygpFcXWArKPHmXwTX21PXeRSTL7uGizKxDDAPRNOKkjA==}
+  pnpm@11.28.1:
+    resolution: {integrity: sha512-4Cvffvdmv8/VugXMy3vvmTkcyODcZm+AKS5eITIDMiUHcMUyr25gBnUEXq7ZikmwPtSrwTrG+xSj0Ydc8i+9YA==}
     engines: {node: '>=22.13'}
     hasBin: true
 
@@ -4810,7 +4810,7 @@ snapshots:
       mlly: 1.8.2
       pathe: 2.0.3
 
-  pnpm@11.28.0: {}
+  pnpm@11.28.1: {}
 
   postcss-load-config@6.0.1(jiti@2.6.1)(postcss@8.5.28)(tsx@4.23.15):
     dependencies:
