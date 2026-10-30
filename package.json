@@ -62,7 +62,7 @@
     "is-ci": "4.1.0",
     "lefthook": "2.2.2",
     "npm-run-all2": "9.0.4",
-    "pnpm": "11.28.7",
+    "pnpm": "11.28.8",
     "publint": "0.3.25",
     "semantic-release-export-data": "1.2.0",
     "tsup": "9.0.0",
