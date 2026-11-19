@@ -4,3 +4,6 @@ allowBuilds:
 strictDepBuilds: true
 minimumReleaseAge: 10080
 trustLockfile: true
+minimumReleaseAgeExclude:
+  # Renovate security update: vitest@4.1.11
+  - vitest@4.1.11
